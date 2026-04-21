@@ -1,6 +1,6 @@
-# AI Bot Hub
+# AI Bot Hub (Stable Edition)
 
-بوت Python Webhook منظم وموسع، يعمل على Railway، ويدعم مزودات ذكاء متعددة.
+بوت Python Webhook احترافي، منظم وموسع، مصمم للنشر المستقر على Railway مع معالجة متقدمة للأخطاء ومنع الانهيار عند الإقلاع.
 
 ## المزايا
 - Webhook حقيقي بدل polling
@@ -51,8 +51,15 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-uvicorn app.main:app --reload
+# تأكد من ضبط المتغيرات في ملف .env
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+## مميزات الاستقرار المضافة
+- **Resilient Startup**: التطبيق ينشئ المجلدات الضرورية (`static`, `templates`) تلقائياً عند الإقلاع لمنع كراش `Directory does not exist`.
+- **Lazy Provider Loading**: لا ينهار التطبيق إذا كان مفتاح API أو المزود غير مضبوط بشكل صحيح عند الإقلاع، بل يعطي تحذيراً ويستمر في العمل لخدمة لوحة التحكم.
+- **Safe Webhook Processing**: معالجة الرسائل تتم في الخلفية (Background Tasks) مع حماية شاملة (Try-Except) لضمان عدم سقوط السيرفر بسبب رسالة خاطئة.
+- **Path Independence**: استخدام المسارات المطلقة المستندة إلى موقع الملف لضمان العمل في أي بيئة (Railway, Docker, Local).
 
 ## النشر على Railway
 1. ارفع المشروع إلى GitHub.

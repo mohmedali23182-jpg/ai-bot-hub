@@ -7,10 +7,14 @@ from . import telegram
 from .router import welcome_text, help_text, prompt_for_kind
 
 logger = logging.getLogger(__name__)
-provider = get_provider()
-
-
 async def process_update(update: dict) -> None:
+    try:
+        await _process_update_safe(update)
+    except Exception:
+        logger.exception('Critical error in process_update')
+        db.bump_stat('critical_errors')
+
+async def _process_update_safe(update: dict) -> None:
     message = update.get('message') or update.get('edited_message')
     if not message:
         return
@@ -53,6 +57,10 @@ async def process_update(update: dict) -> None:
             db.set_mode(chat_id, mode_map[cmd])
             db.bump_stat(f"mode_{mode_map[cmd]}")
             return await telegram.send_message(chat_id, f"تم التبديل إلى وضع: {mode_map[cmd]}", message_id)
+
+    provider = get_provider()
+    if not provider:
+        return await telegram.send_message(chat_id, 'عذراً، لم يتم إعداد مزود الذكاء الاصطناعي بشكل صحيح. يرجى مراجعة الإعدادات.', message_id)
 
     try:
         if message.get('photo'):

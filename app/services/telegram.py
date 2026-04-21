@@ -9,10 +9,15 @@ logger = logging.getLogger(__name__)
 
 
 def tg_api(method: str) -> str:
+    if not settings.TELEGRAM_BOT_TOKEN:
+        raise ValueError('TELEGRAM_BOT_TOKEN is not set')
     return f'https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/{method}'
 
 
 async def request(method: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    if not settings.TELEGRAM_BOT_TOKEN:
+        logger.error('Cannot make Telegram request: TELEGRAM_BOT_TOKEN is missing')
+        return {'ok': False, 'error': 'TELEGRAM_BOT_TOKEN_MISSING'}
     async def _call():
         async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
             r = await client.post(tg_api(method), json=payload or {})
@@ -67,5 +72,9 @@ async def download_file(file_id: str) -> Tuple[bytes, str, str]:
 
 
 async def set_webhook() -> Dict[str, Any]:
+    if not settings.BASE_URL:
+        logger.error('Cannot set webhook: BASE_URL is missing')
+        return {'ok': False, 'error': 'BASE_URL_MISSING'}
     webhook_url = f"{settings.BASE_URL.rstrip('/')}/telegram/webhook/{settings.TELEGRAM_WEBHOOK_SECRET}"
+    logger.info('Setting webhook to: %s', webhook_url)
     return await request('setWebhook', {'url': webhook_url})

@@ -1,10 +1,13 @@
 import sqlite3
+from pathlib import Path
 from typing import Dict, List
 from .config import settings
 
 
 def conn() -> sqlite3.Connection:
-    db = sqlite3.connect(settings.DB_PATH)
+    db_path = Path(settings.DB_PATH)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(db_path)
     db.row_factory = sqlite3.Row
     return db
 

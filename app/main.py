@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI
+from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
@@ -11,7 +12,14 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.APP_NAME)
-app.mount('/static', StaticFiles(directory='app/static'), name='static')
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / 'static'
+TEMPLATES_DIR = BASE_DIR / 'templates'
+
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+
+app.mount('/static', StaticFiles(directory=STATIC_DIR), name='static')
 app.include_router(router)
 
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from ..main import TEMPLATES_DIR
 
 from ..config import settings
 from .. import db
@@ -8,7 +9,7 @@ from ..services.handlers import process_update
 from ..services.telegram import set_webhook, request as tg_request
 
 router = APIRouter()
-templates = Jinja2Templates(directory='app/templates')
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @router.get('/', response_class=HTMLResponse)
