@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ app_name }}</title>
+  <style>
+    body{font-family:Tahoma,Arial,sans-serif;background:#0b1020;color:#eef2ff;margin:0}
+    .wrap{max-width:1180px;margin:auto;padding:24px}
+    .hero,.card{background:#121933;border:1px solid #273154;border-radius:24px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+    .hero{margin-bottom:20px}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-6{grid-column:span 6}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
+    @media(max-width:900px){.col-3,.col-4,.col-6,.col-8,.col-12{grid-column:span 12}}
+    .muted{color:#9aa8d6}.stat{font-size:28px;font-weight:700}input,button,textarea{width:100%;padding:12px;border-radius:14px;border:1px solid #273154;background:#0d1430;color:#fff}button{background:#517cff;border:none;font-weight:700;cursor:pointer}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #273154;text-align:right;vertical-align:top}
+    code{background:#0d1430;padding:4px 8px;border-radius:8px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1 style="margin:0 0 8px">{{ app_name }}</h1>
+    <div class="muted">بوت Python Webhook متعدد المزودات ومهيأ لـ Railway مع بنية منظمة، retries، background processing، وdashboard.</div>
+  </div>
+
+  <div class="grid">
+    <div class="card col-3"><div class="muted">نصوص</div><div class="stat">{{ stats.get('text_requests',0) }}</div></div>
+    <div class="card col-3"><div class="muted">صور</div><div class="stat">{{ stats.get('image_requests',0) }}</div></div>
+    <div class="card col-3"><div class="muted">صوت</div><div class="stat">{{ stats.get('audio_requests',0) }}</div></div>
+    <div class="card col-3"><div class="muted">فيديو</div><div class="stat">{{ stats.get('video_requests',0) }}</div></div>
+
+    <div class="card col-8">
+      <h3>إعدادات التشغيل</h3>
+      <table>
+        <tr><td>AI_PROVIDER</td><td><code>{{ config.AI_PROVIDER }}</code></td></tr>
+        <tr><td>AI_MODEL_TEXT</td><td><code>{{ config.AI_MODEL_TEXT }}</code></td></tr>
+        <tr><td>AI_MODEL_VISION</td><td><code>{{ config.AI_MODEL_VISION }}</code></td></tr>
+        <tr><td>OPENAI_COMPAT_BASE_URL</td><td><code>{{ config.OPENAI_COMPAT_BASE_URL }}</code></td></tr>
+        <tr><td>BASE_URL</td><td><code>{{ config.BASE_URL }}</code></td></tr>
+      </table>
+    </div>
+
+    <div class="card col-4">
+      <h3>Webhook</h3>
+      <form method="post" action="/admin/set-webhook">
+        <input type="password" name="password" placeholder="كلمة مرور الداشبورد" required>
+        <div style="height:10px"></div>
+        <button type="submit">تثبيت الويب هوك</button>
+      </form>
+    </div>
+
+    <div class="card col-12">
+      <h3>آخر الرسائل</h3>
+      <table>
+        <thead><tr><th>الوقت</th><th>الشات</th><th>الدور</th><th>النوع</th><th>النص</th></tr></thead>
+        <tbody>
+        {% for msg in messages %}
+        <tr><td>{{ msg['created_at'] }}</td><td>{{ msg['chat_id'] }}</td><td>{{ msg['role'] }}</td><td>{{ msg['kind'] }}</td><td>{{ msg['text'][:180] if msg['text'] else '' }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>
