@@ -48,7 +48,9 @@ class GeminiProvider(AIProvider):
             'contents': self._history(chat_id) + [{'role': 'user', 'parts': [{'text': text}]}],
             'generationConfig': {'temperature': 0.5, 'topP': 0.9, 'maxOutputTokens': 2048},
         }
-        headers = {'x-goog-api-key': settings.AI_API_KEY, 'Content-Type': 'application/json'}
+        # Ensure API key is clean and stripped of any whitespace/newlines
+        api_key = settings.AI_API_KEY.strip()
+        headers = {'x-goog-api-key': api_key, 'Content-Type': 'application/json'}
         url = f'https://generativelanguage.googleapis.com/v1beta/models/{self._pick_model(mode)}:generateContent'
         async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
             resp = await client.post(url, headers=headers, json=payload)
@@ -70,7 +72,9 @@ class GeminiProvider(AIProvider):
             }],
             'generationConfig': {'temperature': 0.4, 'topP': 0.9, 'maxOutputTokens': 2048},
         }
-        headers = {'x-goog-api-key': settings.AI_API_KEY, 'Content-Type': 'application/json'}
+        # Ensure API key is clean and stripped of any whitespace/newlines
+        api_key = settings.AI_API_KEY.strip()
+        headers = {'x-goog-api-key': api_key, 'Content-Type': 'application/json'}
         url = f'https://generativelanguage.googleapis.com/v1beta/models/{self._pick_model(mode)}:generateContent'
         async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
             resp = await client.post(url, headers=headers, json=payload)

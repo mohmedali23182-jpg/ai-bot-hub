@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Set
 from pathlib import Path
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -35,6 +36,13 @@ class Settings(BaseSettings):
     MAX_TELEGRAM_MESSAGE_LEN: int = 4096
     DOWNLOAD_RETRIES: int = 3
     API_RETRIES: int = 2
+
+    @field_validator('TELEGRAM_BOT_TOKEN', 'AI_API_KEY', 'BASE_URL', 'TELEGRAM_WEBHOOK_SECRET', mode='before')
+    @classmethod
+    def strip_sensitive_vars(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
     @property
     def admin_ids(self) -> Set[int]:

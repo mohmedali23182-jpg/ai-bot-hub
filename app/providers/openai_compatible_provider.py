@@ -42,7 +42,9 @@ class OpenAICompatibleProvider(AIProvider):
             'messages': self._messages(chat_id, text, mode),
             'temperature': 0.5,
         }
-        headers = {'Authorization': f'Bearer {settings.AI_API_KEY}', 'Content-Type': 'application/json'}
+        # Ensure API key is clean and stripped of any whitespace/newlines
+        api_key = settings.AI_API_KEY.strip()
+        headers = {'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'}
         async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
             resp = await client.post(f"{settings.OPENAI_COMPAT_BASE_URL.rstrip('/')}/chat/completions", headers=headers, json=payload)
             resp.raise_for_status()
@@ -50,7 +52,9 @@ class OpenAICompatibleProvider(AIProvider):
             return data['choices'][0]['message']['content']
 
     async def generate_multimodal(self, prompt: str, mode: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
-        headers = {'Authorization': f'Bearer {settings.AI_API_KEY}', 'Content-Type': 'application/json'}
+        # Ensure API key is clean and stripped of any whitespace/newlines
+        api_key = settings.AI_API_KEY.strip()
+        headers = {'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'}
 
         if mode == 'image' and file_url and settings.OPENAI_COMPAT_VISION_INPUT_MODE == 'url':
             content: List[Dict[str, Any]] = [

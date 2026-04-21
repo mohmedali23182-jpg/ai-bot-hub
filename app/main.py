@@ -18,13 +18,24 @@ app.include_router(router)
 @app.on_event('startup')
 async def startup_event():
     init_db()
-    logger.info('App startup complete | provider=%s | base_url=%s', settings.AI_PROVIDER, settings.BASE_URL)
+    
+    # Secure validation of critical environment variables
+    critical_vars = {
+        'TELEGRAM_BOT_TOKEN': settings.TELEGRAM_BOT_TOKEN,
+        'AI_API_KEY': settings.AI_API_KEY,
+        'BASE_URL': settings.BASE_URL,
+        'TELEGRAM_WEBHOOK_SECRET': settings.TELEGRAM_WEBHOOK_SECRET
+    }
+    
     missing = []
-    if not settings.TELEGRAM_BOT_TOKEN:
-        missing.append('TELEGRAM_BOT_TOKEN')
-    if not settings.AI_API_KEY:
-        missing.append('AI_API_KEY')
-    if not settings.BASE_URL:
-        missing.append('BASE_URL')
+    for name, value in critical_vars.items():
+        if not value or not value.strip():
+            missing.append(name)
+        else:
+            # Log presence without revealing value
+            logger.info('Environment variable %s is set and valid (length: %d)', name, len(value))
+
     if missing:
-        logger.warning('Missing env vars: %s', ', '.join(missing))
+        logger.warning('CRITICAL: Missing or empty environment variables: %s. The bot may not function correctly.', ', '.join(missing))
+    
+    logger.info('App startup complete | provider=%s | base_url=%s', settings.AI_PROVIDER, settings.BASE_URL)
