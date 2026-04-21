@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # OpenRouter Specific Settings
     OPENROUTER_API_KEY: Optional[str] = None
     OPENROUTER_BASE_URL: str = 'https://openrouter.ai/api/v1'
-    OPENROUTER_HTTP_REFERER: str = 'https://github.com/mohmedali23182-jpg/ai-bot-hub'
+    OPENROUTER_HTTP_REFERER: str = 'https://ai-bot-hub-production.up.railway.app'
     OPENROUTER_APP_NAME: str = 'AI Bot Hub'
 
     # OpenAI Compatible Provider Settings
@@ -63,9 +63,13 @@ class Settings(BaseSettings):
         return {int(x.strip()) for x in self.TELEGRAM_ADMIN_IDS.split(',') if x.strip().isdigit()}
 
     def get_ai_api_key(self) -> str:
-        """Returns the appropriate API key based on the provider."""
-        if self.AI_PROVIDER == 'openrouter' and self.OPENROUTER_API_KEY:
-            return self.OPENROUTER_API_KEY
+        """
+        Returns the appropriate API key based on the provider.
+        If provider is openrouter, it prioritizes OPENROUTER_API_KEY.
+        Otherwise, it falls back to AI_API_KEY.
+        """
+        if self.AI_PROVIDER == 'openrouter':
+            return self.OPENROUTER_API_KEY or self.AI_API_KEY
         return self.AI_API_KEY
 
 
