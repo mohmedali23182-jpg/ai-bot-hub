@@ -1,77 +1,49 @@
-# AI Bot Hub (Stable Edition)
+# AI Bot Hub (Production Edition 2.0) 🚀
 
-بوت Python Webhook احترافي، منظم وموسع، مصمم للنشر المستقر على Railway مع معالجة متقدمة للأخطاء ومنع الانهيار عند الإقلاع.
+بوت تيليجرام احترافي ومستقر، مصمم للعمل على منصة **Railway** باستخدام تقنية **Webhook**. يدعم معالجة النصوص والوسائط المتعددة (صور، صوت، فيديو، مستندات) عبر عدة مزودين للذكاء الاصطناعي.
 
-## المزايا
-- Webhook حقيقي بدل polling
-- Background task لمعالجة التحديثات بسرعة بدون تعليق endpoint
-- Retry للتحميلات والطلبات الخارجية
-- Dashboard + healthz + metrics
-- Provider architecture:
-  - `gemini`
-  - `openai_compatible` (مثل OpenAI / Groq / OpenRouter / Together إذا كان endpoint متوافقاً)
-- تخزين سياق وإحصاءات بـ SQLite
-- أوضاع: نص، صور، صوت، فيديو، كود
+## 🌟 المميزات الجديدة (v2.0)
+- **بنية مزودين مرنة:** دعم Gemini، OpenRouter، وأي مزود متوافق مع OpenAI بسهولة.
+- **دعم OpenRouter:** دعم كامل لـ OpenRouter مع إمكانية تمرير Headers المطلوبة.
+- **تجربة مستخدم محسنة (UX):** رسائل ترحيب أجمل، أوامر واضحة، ومعالجة ذكية للأخطاء.
+- **أمان عالي:** نظام Logging يقوم بتشفير المفاتيح والتوكنات تلقائياً، وتحقق صارم من Webhook.
+- **تحمل الأخطاء (Resiliency):** آلية Retry متطورة مع Exponential Backoff للتعامل مع ضغط الطلبات (429) وأخطاء الخوادم (5xx).
+- **إدارة الملفات:** دعم الملفات حتى 20 ميجابايت مع تحقق من الأنواع المدعومة.
+- **لوحة تحكم (Dashboard):** لمتابعة الإحصائيات والرسائل الأخيرة وإعداد الـ Webhook بضغطة زر.
 
-## متغيرات البيئة الأساسية
-- `TELEGRAM_BOT_TOKEN`
-- `BASE_URL`
-- `TELEGRAM_WEBHOOK_SECRET`
-- `DASHBOARD_PASSWORD`
-- `AI_PROVIDER`
-- `AI_API_KEY`
+## 🛠️ الإعداد والتشغيل (Railway)
+المشروع جاهز للنشر المباشر على Railway. فقط قم بربط المستودع وإضافة المتغيرات البيئية التالية:
 
-## أمثلة المزودات
-### Gemini
-```env
-AI_PROVIDER=gemini
-AI_API_KEY=YOUR_GEMINI_KEY
-AI_MODEL_TEXT=gemini-2.5-flash
-AI_MODEL_VISION=gemini-2.5-flash
-AI_MODEL_AUDIO=gemini-2.5-flash
-AI_MODEL_VIDEO=gemini-2.5-flash
-AI_MODEL_CODE=gemini-2.5-flash
-```
+### المتغيرات البيئية الأساسية (Environment Variables)
+| المتغير | الوصف |
+|---------|---------|
+| `TELEGRAM_BOT_TOKEN` | توكن البوت من BotFather |
+| `TELEGRAM_WEBHOOK_SECRET` | نص عشوائي لتأمين الـ Webhook |
+| `BASE_URL` | رابط تطبيقك على Railway (مثلاً `https://app.up.railway.app`) |
+| `AI_PROVIDER` | `gemini` أو `openrouter` أو `openai_compatible` |
+| `AI_API_KEY` | مفتاح الـ API الخاص بالمزود المختار |
+| `DASHBOARD_PASSWORD` | كلمة مرور لوحة التحكم |
 
-### OpenAI-compatible
-```env
-AI_PROVIDER=openai_compatible
-AI_API_KEY=YOUR_PROVIDER_KEY
-OPENAI_COMPAT_BASE_URL=https://api.openai.com/v1
-AI_MODEL_TEXT=gpt-4.1-mini
-AI_MODEL_VISION=gpt-4.1-mini
-AI_MODEL_AUDIO=gpt-4.1-mini
-AI_MODEL_VIDEO=gpt-4.1-mini
-AI_MODEL_CODE=gpt-4.1-mini
-```
+### إعدادات OpenRouter
+إذا اخترت `AI_PROVIDER=openrouter`:
+- `OPENROUTER_BASE_URL`: (اختياري) القيمة الافتراضية `https://openrouter.ai/api/v1`
+- `OPENROUTER_APP_NAME`: اسم تطبيقك ليظهر في لوحة OpenRouter.
 
-## التشغيل المحلي
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# تأكد من ضبط المتغيرات في ملف .env
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+## 📁 هيكلة المشروع
+- `app/config.py`: إعدادات المشروع والتحقق من المتغيرات.
+- `app/providers/`: بنية مزودي الذكاء الاصطناعي (Gemini, OpenAI, OpenRouter).
+- `app/services/`: منطق البوت، التعامل مع تيليجرام، ومعالجة الرسائل.
+- `app/web/`: مسارات FastAPI ولوحة التحكم.
+- `app/utils.py`: أدوات مساعدة (Retry, Chunking).
+- `data/`: مجلد قاعدة البيانات (SQLite).
 
-## مميزات الاستقرار المضافة
-- **Resilient Startup**: التطبيق ينشئ المجلدات الضرورية (`static`, `templates`) تلقائياً عند الإقلاع لمنع كراش `Directory does not exist`.
-- **Lazy Provider Loading**: لا ينهار التطبيق إذا كان مفتاح API أو المزود غير مضبوط بشكل صحيح عند الإقلاع، بل يعطي تحذيراً ويستمر في العمل لخدمة لوحة التحكم.
-- **Safe Webhook Processing**: معالجة الرسائل تتم في الخلفية (Background Tasks) مع حماية شاملة (Try-Except) لضمان عدم سقوط السيرفر بسبب رسالة خاطئة.
-- **Path Independence**: استخدام المسارات المطلقة المستندة إلى موقع الملف لضمان العمل في أي بيئة (Railway, Docker, Local).
+## 🚀 التشغيل المحلي
+1. قم بتثبيت المتطلبات: `pip install -r requirements.txt`
+2. انسخ `.env.example` إلى `.env` وقم بتعبئة البيانات.
+3. شغل التطبيق: `uvicorn app.main:app --reload`
 
-## النشر على Railway
-1. ارفع المشروع إلى GitHub.
-2. اختر Deploy from GitHub repo.
-3. أضف المتغيرات في Variables.
-4. ولّد دومين وضعه في `BASE_URL`.
-5. افتح `/` ثم ثبت الويب هوك.
-
-## ملفات المشروع
-- `app/config.py`
-- `app/providers/`
-- `app/services/telegram.py`
-- `app/services/handlers.py`
-- `app/web/routes.py`
-- `app/main.py`
+## 🛡️ الأمان والاستقرار
+- يتم تنظيف المتغيرات البيئية تلقائياً من أي مسافات زائدة.
+- لا يتم طباعة أي مفاتيح سرية في السجلات (Logs).
+- البوت يستخدم Background Tasks لضمان سرعة الرد على تيليجرام.
+- تقسيم تلقائي للرسائل الطويلة لضمان وصولها بالكامل.
