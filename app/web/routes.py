@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from ..main import TEMPLATES_DIR
+from ..config import TEMPLATES_DIR
 
 from ..config import settings
 from .. import db

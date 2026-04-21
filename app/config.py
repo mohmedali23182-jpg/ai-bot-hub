@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Set
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -41,3 +42,12 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Path definitions to avoid circular imports
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / 'static'
+TEMPLATES_DIR = BASE_DIR / 'templates'
+
+# Ensure directories exist
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
