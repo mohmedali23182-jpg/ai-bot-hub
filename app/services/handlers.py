@@ -15,7 +15,6 @@ async def process_update(update: dict) -> None:
     except Exception as exc:
         logger.exception('Critical error in process_update')
         db.bump_stat('critical_errors')
-        # We don't have chat_id here reliably, but let's try
         message = update.get('message') or update.get('edited_message')
         if message:
             chat_id = message['chat']['id']
@@ -46,6 +45,7 @@ async def _process_update_safe(update: dict) -> None:
         
         if cmd == '/start':
             db.bump_stat('cmd_start')
+            db.set_mode(chat_id, 'text') # Default to text on start
             return await telegram.send_message(chat_id, welcome_text(), message_id)
             
         if cmd == '/help':
@@ -66,10 +66,6 @@ async def _process_update_safe(update: dict) -> None:
             )
             return await telegram.send_message(chat_id, status_msg, message_id)
             
-        if cmd == '/dashboard':
-            dashboard_url = settings.BASE_URL.rstrip('/') + '/' if settings.BASE_URL else '#'
-            return await telegram.send_message(chat_id, f"📊 يمكنك الوصول للوحة التحكم من هنا:\n{dashboard_url}", message_id)
-            
         if cmd in mode_map:
             new_mode = mode_map[cmd]
             db.set_mode(chat_id, new_mode)
@@ -86,34 +82,38 @@ async def _process_update_safe(update: dict) -> None:
         return await telegram.send_message(chat_id, '❌ عذراً، لم يتم إعداد مزود الذكاء الاصطناعي بشكل صحيح. يرجى مراجعة الإعدادات.', message_id)
 
     try:
-        # Multimodal Handling
+        # Multimodal & Specialized Handling
         result = None
         media_found = False
         
+        # 1. Image Handling
         if message.get('photo'):
             media_found = True
             db.bump_stat('image_requests')
             photo = message['photo'][-1]
             data, content_type, file_url = await telegram.download_file(photo['file_id'])
-            result = await provider.generate_multimodal(prompt_for_kind('image', text), 'image', data, content_type or 'image/jpeg', file_url=file_url)
+            # Route to specialized analyze_image
+            result = await provider.analyze_image(prompt_for_kind('image', text), data, content_type or 'image/jpeg', file_url=file_url)
             db.add_message(chat_id, 'user', text or '[image]', 'image')
             db.add_message(chat_id, 'model', result, 'image')
 
+        # 2. Audio/Voice Handling
         elif message.get('voice') or message.get('audio'):
             media_found = True
             db.bump_stat('audio_requests')
             media = message.get('voice') or message.get('audio')
             
-            # Size limit check (Telegram voice/audio can be large)
             if media.get('file_size', 0) > 20 * 1024 * 1024:
                 return await telegram.send_message(chat_id, "⚠️ الملف الصوتي كبير جداً. الحد الأقصى هو 20 ميجابايت.", message_id)
                 
             data, ct, file_url = await telegram.download_file(media['file_id'])
             mime_type = media.get('mime_type') or ct or 'audio/ogg'
-            result = await provider.generate_multimodal(prompt_for_kind('audio', text), 'audio', data, mime_type, file_url=file_url)
+            # Route to specialized analyze_audio
+            result = await provider.analyze_audio(prompt_for_kind('audio', text), data, mime_type, file_url=file_url)
             db.add_message(chat_id, 'user', text or '[audio]', 'audio')
             db.add_message(chat_id, 'model', result, 'audio')
 
+        # 3. Video Handling
         elif message.get('video'):
             media_found = True
             db.bump_stat('video_requests')
@@ -124,10 +124,12 @@ async def _process_update_safe(update: dict) -> None:
                 
             data, ct, file_url = await telegram.download_file(media['file_id'])
             mime_type = media.get('mime_type') or ct or 'video/mp4'
-            result = await provider.generate_multimodal(prompt_for_kind('video', text), 'video', data, mime_type, file_url=file_url)
+            # Route to specialized analyze_video
+            result = await provider.analyze_video(prompt_for_kind('video', text), data, mime_type, file_url=file_url)
             db.add_message(chat_id, 'user', text or '[video]', 'video')
             db.add_message(chat_id, 'model', result, 'video')
 
+        # 4. Document Handling
         elif message.get('document'):
             media_found = True
             db.bump_stat('document_requests')
@@ -138,18 +140,28 @@ async def _process_update_safe(update: dict) -> None:
                 
             data, ct, file_url = await telegram.download_file(doc['file_id'])
             guessed = doc.get('mime_type') or ct or mimetypes.guess_type(doc.get('file_name', ''))[0] or 'application/octet-stream'
-            effective_mode = 'code' if guessed.startswith('text/') or 'code' in guessed else mode
-            result = await provider.generate_multimodal(prompt_for_kind('document', text), effective_mode, data, guessed, file_url=file_url)
+            effective_mode = 'code' if guessed.startswith('text/') or 'code' in guessed or mode == 'code' else 'text'
+            
+            if effective_mode == 'code':
+                result = await provider.generate_code(chat_id, f"Analyze this code file: {text or ''}\nContent follows in multimodal stream.")
+            else:
+                result = await provider.generate_multimodal(prompt_for_kind('document', text), effective_mode, data, guessed, file_url=file_url)
+            
             db.add_message(chat_id, 'user', text or f"[document: {doc.get('file_name', 'file')}]", 'document')
             db.add_message(chat_id, 'model', result, 'document')
 
+        # 5. Text/Code Handling
         elif text:
-            # Text Handling
-            effective_mode = 'code' if mode == 'code' else 'text'
-            db.bump_stat(f'{effective_mode}_requests')
-            result = await provider.generate_text(chat_id, text, effective_mode)
-            db.add_message(chat_id, 'user', text, effective_mode)
-            db.add_message(chat_id, 'model', result, effective_mode)
+            if mode == 'code':
+                db.bump_stat('code_requests')
+                # Route to specialized generate_code
+                result = await provider.generate_code(chat_id, text)
+            else:
+                db.bump_stat('text_requests')
+                result = await provider.generate_text(chat_id, text, 'text')
+            
+            db.add_message(chat_id, 'user', text, mode)
+            db.add_message(chat_id, 'model', result, mode)
         
         if result:
             await telegram.send_message(chat_id, result, message_id)
@@ -160,13 +172,16 @@ async def _process_update_safe(update: dict) -> None:
         logger.error('Failed to process message: %s\n%s', exc, traceback.format_exc())
         db.bump_stat('processing_errors')
         
-        # User-friendly error messages
+        # User-friendly production-ready error messages
         error_msg = "⚠️ عذراً، واجهت مشكلة أثناء معالجة طلبك."
-        if "429" in str(exc):
+        exc_str = str(exc).lower()
+        if "429" in exc_str:
             error_msg = "⏳ الخدمة مشغولة حالياً بكثرة الطلبات. يرجى المحاولة مرة أخرى بعد قليل."
-        elif "503" in str(exc) or "504" in str(exc):
+        elif "503" in exc_str or "504" in exc_str:
             error_msg = "🔌 يبدو أن هناك مشكلة في الاتصال بمزود الذكاء الاصطناعي. جاري المحاولة لاحقاً."
-        elif "timeout" in str(exc).lower():
+        elif "timeout" in exc_str:
             error_msg = "⏱️ استغرق الطلب وقتاً أطول من المعتاد. يرجى المحاولة مرة أخرى."
+        elif "safety" in exc_str or "blocked" in exc_str:
+            error_msg = "🛡️ عذراً، تم حجب هذا المحتوى من قبل سياسات الأمان الخاصة بالمزود."
             
         await telegram.send_message(chat_id, error_msg, message_id)

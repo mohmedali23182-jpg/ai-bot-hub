@@ -29,7 +29,7 @@ async def request(method: str, payload: Optional[Dict[str, Any]] = None, files: 
             
             # Handle rate limits and server errors specifically
             if r.status_code == 429:
-                retry_after = int(r.headers.get('Retry-After', 1))
+                retry_after = int(r.headers.get('Retry-After', 2))
                 logger.warning('Telegram Rate Limit (429). Retry-After: %d', retry_after)
                 await asyncio.sleep(retry_after)
                 raise httpx.HTTPStatusError('Telegram Rate Limit', request=r.request, response=r)
@@ -62,16 +62,15 @@ async def send_chat_action(chat_id: int, action: str = 'typing') -> None:
 async def send_message(chat_id: int, text: str, reply_to_message_id: Optional[int] = None, parse_mode: str = 'Markdown') -> None:
     keyboard = {
         'keyboard': [
-            ['/mode_text', '/mode_image'],
-            ['/mode_audio', '/mode_video'],
-            ['/mode_code', '/help'],
+            ['/mode_text', '/mode_code'],
+            ['/clear', '/help'],
         ],
         'resize_keyboard': True,
     }
     
     # Handle empty text
     if not text or not text.strip():
-        text = "لم يصل رد نصي من المزود."
+        text = "⚠️ لم يصل رد نصي من المزود."
 
     chunks = chunk_text(text, settings.MAX_TELEGRAM_MESSAGE_LEN)
     for i, chunk in enumerate(chunks):
@@ -86,6 +85,7 @@ async def send_message(chat_id: int, text: str, reply_to_message_id: Optional[in
         # Try Markdown first, if it fails, try plain text
         res = await request('sendMessage', payload)
         if not res.get('ok') and 'can\'t parse entities' in str(res.get('description', '')).lower():
+            logger.warning("Markdown parsing failed in chat %d, falling back to plain text", chat_id)
             payload.pop('parse_mode', None)
             await request('sendMessage', payload)
 

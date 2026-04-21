@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.APP_NAME,
     description="AI Bot Hub - Production Ready Telegram Bot with Multi-Provider AI Support",
-    version="2.0.0"
+    version="2.1.0"
 )
 
 # Mount static files safely
@@ -35,7 +35,6 @@ async def startup_event():
     # Initialize Database
     try:
         init_db()
-        logger.info("Database initialized successfully at %s", settings.DB_PATH)
     except Exception as e:
         logger.critical("Failed to initialize database: %s", e)
         # In production, we might want to exit if DB fails
@@ -44,7 +43,7 @@ async def startup_event():
     # Secure validation of critical environment variables
     critical_vars = {
         'TELEGRAM_BOT_TOKEN': settings.TELEGRAM_BOT_TOKEN,
-        'AI_API_KEY': settings.AI_API_KEY,
+        'AI_API_KEY': settings.get_ai_api_key(),
         'BASE_URL': settings.BASE_URL,
         'TELEGRAM_WEBHOOK_SECRET': settings.TELEGRAM_WEBHOOK_SECRET
     }
@@ -63,7 +62,18 @@ async def startup_event():
     logger.info('🚀 App startup complete | provider=%s | base_url=%s | env=%s', settings.AI_PROVIDER, settings.BASE_URL, settings.APP_ENV)
 
 
+@app.get("/health")
+async def health_check():
+    """Detailed health check for production monitoring."""
+    return {
+        "status": "healthy",
+        "version": "2.1.0",
+        "provider": settings.AI_PROVIDER,
+        "database": "connected" if DATA_DIR.exists() else "error"
+    }
+
+
 @app.get("/metrics")
 async def metrics_root():
     # Simple root health for monitoring
-    return {"status": "running", "version": "2.0.0"}
+    return {"status": "running", "version": "2.1.0"}

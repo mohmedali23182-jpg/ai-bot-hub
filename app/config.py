@@ -20,21 +20,24 @@ class Settings(BaseSettings):
 
     # AI Provider Settings
     AI_PROVIDER: str = 'gemini'  # gemini | openai_compatible | openrouter
-    AI_API_KEY: str = ''
+    AI_API_KEY: str = '' # General API Key (used for Gemini/OpenAI)
+    
+    # OpenRouter Specific Settings
+    OPENROUTER_API_KEY: Optional[str] = None
+    OPENROUTER_BASE_URL: str = 'https://openrouter.ai/api/v1'
+    OPENROUTER_HTTP_REFERER: str = 'https://github.com/mohmedali23182-jpg/ai-bot-hub'
+    OPENROUTER_APP_NAME: str = 'AI Bot Hub'
+
+    # OpenAI Compatible Provider Settings
+    OPENAI_COMPAT_BASE_URL: str = 'https://api.openai.com/v1'
+    OPENAI_COMPAT_VISION_INPUT_MODE: str = 'url'  # url | base64
+
+    # Models
     AI_MODEL_TEXT: str = 'gemini-2.0-flash'
     AI_MODEL_VISION: str = 'gemini-2.0-flash'
     AI_MODEL_AUDIO: str = 'gemini-2.0-flash'
     AI_MODEL_VIDEO: str = 'gemini-2.0-flash'
     AI_MODEL_CODE: str = 'gemini-2.0-flash'
-
-    # OpenAI Compatible Provider Settings
-    OPENAI_COMPAT_BASE_URL: str = 'https://api.openai.com/v1'
-    OPENAI_COMPAT_VISION_INPUT_MODE: str = 'url'  # url | text_only
-
-    # OpenRouter Specific Settings
-    OPENROUTER_BASE_URL: str = 'https://openrouter.ai/api/v1'
-    OPENROUTER_HTTP_REFERER: str = 'https://github.com/mohmedali23182-jpg/ai-bot-hub'
-    OPENROUTER_APP_NAME: str = 'AI Bot Hub'
 
     # Operational Limits
     GEMINI_MAX_INLINE_BYTES: int = 18 * 1024 * 1024
@@ -42,15 +45,14 @@ class Settings(BaseSettings):
     MAX_HISTORY_TURNS: int = 10
     ENABLE_TYPING: bool = True
     DB_PATH: str = 'data/bot.db'
-    MAX_TELEGRAM_MESSAGE_LEN: int = 4096
+    MAX_TELEGRAM_MESSAGE_LEN: int = 4000
     DOWNLOAD_RETRIES: int = 3
     API_RETRIES: int = 3
 
-    @field_validator('TELEGRAM_BOT_TOKEN', 'AI_API_KEY', 'BASE_URL', 'TELEGRAM_WEBHOOK_SECRET', mode='before')
+    @field_validator('*', mode='before')
     @classmethod
-    def strip_sensitive_vars(cls, v: str) -> str:
+    def strip_all_strings(cls, v: any) -> any:
         if isinstance(v, str):
-            # Remove any surrounding whitespace or newlines
             return v.strip()
         return v
 
@@ -59,6 +61,12 @@ class Settings(BaseSettings):
         if not self.TELEGRAM_ADMIN_IDS:
             return set()
         return {int(x.strip()) for x in self.TELEGRAM_ADMIN_IDS.split(',') if x.strip().isdigit()}
+
+    def get_ai_api_key(self) -> str:
+        """Returns the appropriate API key based on the provider."""
+        if self.AI_PROVIDER == 'openrouter' and self.OPENROUTER_API_KEY:
+            return self.OPENROUTER_API_KEY
+        return self.AI_API_KEY
 
 
 settings = Settings()

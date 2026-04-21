@@ -20,6 +20,12 @@ class GeminiProvider(AIProvider):
                 msg = error.get('message', 'خطأ غير معروف')
                 logger.error("Gemini API Error: %s", msg)
                 return f"❌ خطأ من جوجل: {msg}"
+            
+            # Check for safety ratings or other reasons for no candidates
+            if 'promptFeedback' in data:
+                reason = data['promptFeedback'].get('blockReason', 'Unknown')
+                return f"⚠️ تم حجب الرد من قبل المزود (السبب: {reason})."
+                
             return 'لم يصل رد من مزود الذكاء.'
             
         parts = candidates[0].get('content', {}).get('parts', [])
@@ -45,7 +51,7 @@ class GeminiProvider(AIProvider):
             },
         }
         
-        api_key = settings.AI_API_KEY.strip()
+        api_key = settings.get_ai_api_key()
         headers = {'x-goog-api-key': api_key, 'Content-Type': 'application/json'}
         url = f'https://generativelanguage.googleapis.com/v1beta/models/{self._pick_model(mode)}:generateContent'
         
@@ -66,7 +72,7 @@ class GeminiProvider(AIProvider):
                 'role': 'user',
                 'parts': [
                     {'inline_data': {'mime_type': mime_type, 'data': base64.b64encode(file_bytes).decode('utf-8')}},
-                    {'text': prompt},
+                    {'text': prompt or self._system_prompt(mode)},
                 ]
             }],
             'generationConfig': {
@@ -76,7 +82,7 @@ class GeminiProvider(AIProvider):
             },
         }
         
-        api_key = settings.AI_API_KEY.strip()
+        api_key = settings.get_ai_api_key()
         headers = {'x-goog-api-key': api_key, 'Content-Type': 'application/json'}
         url = f'https://generativelanguage.googleapis.com/v1beta/models/{self._pick_model(mode)}:generateContent'
         
@@ -86,3 +92,13 @@ class GeminiProvider(AIProvider):
                 logger.error("Gemini Multimodal Error: %d - %s", resp.status_code, resp.text)
             resp.raise_for_status()
             return self._extract_text(resp.json())
+
+    # Production specialized methods
+    async def analyze_image(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
+        return await self.generate_multimodal(prompt, "image", file_bytes, mime_type, file_url)
+
+    async def analyze_audio(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
+        return await self.generate_multimodal(prompt, "audio", file_bytes, mime_type, file_url)
+
+    async def analyze_video(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
+        return await self.generate_multimodal(prompt, "video", file_bytes, mime_type, file_url)

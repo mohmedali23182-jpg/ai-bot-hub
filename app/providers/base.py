@@ -24,6 +24,19 @@ class AIProvider(ABC):
         """
         raise NotImplementedError
 
+    # Specialized methods for production-ready routing
+    async def analyze_image(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
+        return await self.generate_multimodal(prompt, "image", file_bytes, mime_type, file_url)
+
+    async def analyze_audio(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
+        return await self.generate_multimodal(prompt, "audio", file_bytes, mime_type, file_url)
+
+    async def analyze_video(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
+        return await self.generate_multimodal(prompt, "video", file_bytes, mime_type, file_url)
+
+    async def generate_code(self, chat_id: int, prompt: str) -> str:
+        return await self.generate_text(chat_id, prompt, "code")
+
     def _pick_model(self, mode: str) -> str:
         """
         Helper to pick the correct model name from settings based on mode.
@@ -42,10 +55,10 @@ class AIProvider(ABC):
         Helper to provide consistent system prompts across providers.
         """
         prompts = {
-            'text': 'أنت مساعد عربي احترافي. كن واضحا ودقيقا ومنظما.',
-            'image': 'أنت خبير تحليل صور. استخرج النصوص ووصف العناصر بدقة دون تخمين.',
-            'audio': 'أنت خبير صوت. فرّغ المحتوى إن أمكن ثم لخّصه واستخرج أهم النقاط.',
-            'video': 'أنت خبير فيديو. لخّص المشاهد والمحتوى النصي الظاهر.',
-            'code': 'أنت مهندس برمجيات خبير. أعط حلولاً قوية وآمنة وقابلة للتوسعة.',
+            'text': 'أنت مساعد ذكاء اصطناعي عربي متطور. قدم إجابات دقيقة، مفيدة، ومنظمة بشكل جيد.',
+            'image': 'أنت خبير في تحليل الصور والوسائط البصرية. صف العناصر بدقة، استخرج النصوص، وأجب عن التساؤلات المتعلقة بالصورة.',
+            'audio': 'أنت خبير في تحليل الصوتيات. قم بتفريغ المحتوى الصوتي، تلخيصه، واستخراج النقاط الرئيسية منه.',
+            'video': 'أنت خبير في تحليل الفيديو. صف المشاهد، لخص الأحداث، واستخرج المعلومات النصية أو البصرية الهامة.',
+            'code': 'أنت مهندس برمجيات Senior. قدم حلولاً برمجية نظيفة، آمنة، وفعالة مع شرح واضح للمنطق البرمجي.',
         }
-        return prompts.get(mode, prompts['text'])
+        return prompts.get(mode, prompts.get('text', 'أنت مساعد ذكي.'))

@@ -16,8 +16,9 @@ class OpenAICompatibleProvider(AIProvider):
         self.is_openrouter = is_openrouter
 
     def _get_headers(self) -> Dict[str, str]:
+        api_key = settings.get_ai_api_key()
         headers = {
-            'Authorization': f'Bearer {settings.AI_API_KEY.strip()}',
+            'Authorization': f'Bearer {api_key}',
             'Content-Type': 'application/json'
         }
         if self.is_openrouter:
@@ -43,7 +44,9 @@ class OpenAICompatibleProvider(AIProvider):
             if not choices:
                 error = data.get('error', {})
                 if error:
-                    return f"❌ خطأ من المزود: {error.get('message', 'خطأ غير معروف')}"
+                    msg = error.get('message', 'خطأ غير معروف')
+                    logger.error("Provider Error: %s", msg)
+                    return f"❌ خطأ من المزود: {msg}"
                 return 'لم يصل رد من مزود الذكاء.'
             
             content = choices[0].get('message', {}).get('content', '')
@@ -72,7 +75,7 @@ class OpenAICompatibleProvider(AIProvider):
         model = self._pick_model(mode)
         
         # Build content based on availability of URL or bytes
-        content = [{'type': 'text', 'text': prompt}]
+        content = [{'type': 'text', 'text': prompt or self._system_prompt(mode)}]
         
         if mode == 'image':
             if settings.OPENAI_COMPAT_VISION_INPUT_MODE == 'url' and file_url:
