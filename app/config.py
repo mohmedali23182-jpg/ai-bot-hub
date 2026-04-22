@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Set, Optional
+from typing import Set, Optional, Union
 from pathlib import Path
 from pydantic import field_validator
 
@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     AI_MODEL_GEN_IMAGE: str = 'openai/dall-e-3'
     AI_MODEL_GEN_VIDEO: str = 'luma/dream-machine'
     AI_MODEL_GEN_MUSIC: str = 'suno/chirp-v3-5'
+    
+    # Gemini-specific generation models
+    AI_MODEL_GEMINI_IMAGE: str = 'imagen-3.0-generate-002'
+    AI_MODEL_GEMINI_VIDEO: str = 'veo-2.0-generate'
 
     # Operational Limits
     GEMINI_MAX_INLINE_BYTES: int = 18 * 1024 * 1024

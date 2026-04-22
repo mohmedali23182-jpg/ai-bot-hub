@@ -1,6 +1,6 @@
 import base64
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import httpx
 
 from ..config import settings
@@ -105,7 +105,7 @@ class OpenAICompatibleProvider(AIProvider):
             resp.raise_for_status()
             return self._extract_text(resp.json())
 
-    async def generate_image(self, prompt: str) -> str:
+    async def generate_image(self, prompt: str) -> Union[str, bytes]:
         payload = {
             'model': settings.AI_MODEL_GEN_IMAGE,
             'prompt': prompt,
@@ -113,8 +113,6 @@ class OpenAICompatibleProvider(AIProvider):
             'size': '1024x1024'
         }
         
-        # Note: OpenRouter often handles image generation via chat/completions with specific models
-        # or via a standard /images/generations endpoint if supported by the underlying provider.
         url = f'{self.base_url}/images/generations'
         
         try:
@@ -137,13 +135,13 @@ class OpenAICompatibleProvider(AIProvider):
                 return await self._generate_media_via_chat(prompt, settings.AI_MODEL_GEN_IMAGE)
             return f"❌ حدث خطأ أثناء توليد الصورة: {str(exc)}"
 
-    async def generate_video(self, prompt: str) -> str:
+    async def generate_video(self, prompt: str) -> Union[str, bytes]:
         # Video generation is highly provider-specific. Using chat fallback for OpenRouter
         if self.is_openrouter:
             return await self._generate_media_via_chat(prompt, settings.AI_MODEL_GEN_VIDEO)
         return "⏳ ميزة توليد الفيديو غير مدعومة مباشرة عبر هذا المزود حالياً."
 
-    async def generate_music(self, prompt: str) -> str:
+    async def generate_music(self, prompt: str) -> Union[str, bytes]:
         if self.is_openrouter:
             return await self._generate_media_via_chat(prompt, settings.AI_MODEL_GEN_MUSIC)
         return "⏳ ميزة توليد الموسيقى غير مدعومة مباشرة عبر هذا المزود حالياً."

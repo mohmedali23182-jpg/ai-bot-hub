@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any, Dict, Optional, Tuple, List, Union
 import httpx
 import asyncio
 
@@ -91,34 +91,46 @@ async def send_message(chat_id: int, text: str, reply_to_message_id: Optional[in
             await request('sendMessage', payload)
 
 
-async def send_photo(chat_id: int, photo_url: str, caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
+async def send_photo(chat_id: int, photo_data: Union[str, bytes], caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
     payload = {
         'chat_id': chat_id,
-        'photo': photo_url,
         'caption': caption,
         'reply_to_message_id': reply_to_message_id
     }
-    await request('sendPhoto', payload)
+    files = None
+    if isinstance(photo_data, bytes):
+        files = {'photo': ('image.jpg', photo_data, 'image/jpeg')}
+    else:
+        payload['photo'] = photo_data
+    await request('sendPhoto', payload=payload, files=files)
 
 
-async def send_video_url(chat_id: int, video_url: str, caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
+async def send_video_url(chat_id: int, video_data: Union[str, bytes], caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
     payload = {
         'chat_id': chat_id,
-        'video': video_url,
         'caption': caption,
         'reply_to_message_id': reply_to_message_id
     }
-    await request('sendVideo', payload)
+    files = None
+    if isinstance(video_data, bytes):
+        files = {'video': ('video.mp4', video_data, 'video/mp4')}
+    else:
+        payload['video'] = video_data
+    await request('sendVideo', payload=payload, files=files)
 
 
-async def send_audio_url(chat_id: int, audio_url: str, caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
+async def send_audio_url(chat_id: int, audio_data: Union[str, bytes], caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
     payload = {
         'chat_id': chat_id,
-        'audio': audio_url,
         'caption': caption,
         'reply_to_message_id': reply_to_message_id
     }
-    await request('sendAudio', payload)
+    files = None
+    if isinstance(audio_data, bytes):
+        files = {'audio': ('audio.mp3', audio_data, 'audio/mpeg')}
+    else:
+        payload['audio'] = audio_data
+    await request('sendAudio', payload=payload, files=files)
 
 
 async def get_file_url(file_id: str) -> str:

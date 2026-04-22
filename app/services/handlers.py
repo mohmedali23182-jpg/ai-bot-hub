@@ -168,7 +168,7 @@ async def _process_update_safe(update: dict) -> None:
             elif mode == 'gen_image':
                 db.bump_stat('gen_image_requests')
                 result = await provider.generate_image(prompt=text)
-                if result.startswith('http'):
+                if isinstance(result, bytes) or (isinstance(result, str) and result.startswith('http')):
                     await telegram.send_photo(chat_id, result, caption=f"🎨 تم توليد الصورة لطلبك: {text[:50]}...", reply_to_message_id=message_id)
                     result = None # Handled
                 else:
@@ -177,7 +177,7 @@ async def _process_update_safe(update: dict) -> None:
             elif mode == 'gen_video':
                 db.bump_stat('gen_video_requests')
                 result = await provider.generate_video(prompt=text)
-                if result.startswith('http'):
+                if isinstance(result, bytes) or (isinstance(result, str) and result.startswith('http')):
                     await telegram.send_video_url(chat_id, result, caption=f"🎬 تم توليد الفيديو لطلبك: {text[:50]}...", reply_to_message_id=message_id)
                     result = None # Handled
                 else:
@@ -186,7 +186,7 @@ async def _process_update_safe(update: dict) -> None:
             elif mode == 'gen_music':
                 db.bump_stat('gen_music_requests')
                 result = await provider.generate_music(prompt=text)
-                if result.startswith('http'):
+                if isinstance(result, bytes) or (isinstance(result, str) and result.startswith('http')):
                     await telegram.send_audio_url(chat_id, result, caption=f"🎵 تم توليد الموسيقى لطلبك: {text[:50]}...", reply_to_message_id=message_id)
                     result = None # Handled
                 else:

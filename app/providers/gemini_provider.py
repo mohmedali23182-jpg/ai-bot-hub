@@ -1,7 +1,9 @@
 import base64
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import httpx
+from google import genai
+from google.genai import types
 
 from ..config import settings
 from .. import db
@@ -93,13 +95,37 @@ class GeminiProvider(AIProvider):
             resp.raise_for_status()
             return self._extract_text(resp.json())
 
-    async def generate_image(self, prompt: str) -> str:
-        # Note: imagen models usually require vertex ai or different endpoint.
-        # Returning message to user.
-        return "⚠️ ميزة توليد الصور من جوجل (Imagen) تتطلب إعدادات متقدمة أو استخدام مزود OpenRouter حالياً."
+    async def generate_image(self, prompt: str) -> Union[str, bytes]:
+        try:
+            client = genai.Client(api_key=settings.get_ai_api_key())
+            response = await client.aio.models.generate_images(
+                model=settings.AI_MODEL_GEMINI_IMAGE,
+                prompt=prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    output_mime_type="image/jpeg",
+                    aspect_ratio="1:1"
+                )
+            )
+            if response.generated_images:
+                return response.generated_images[0].image.image_bytes
+            return "❌ لم يتم توليد الصورة. قد يكون الطلب مخالفاً لسياسات الأمان."
+        except Exception as exc:
+            logger.error("Gemini Image Gen Error: %s", exc)
+            return f"❌ حدث خطأ من مزود جوجل: {exc}"
 
-    async def generate_video(self, prompt: str) -> str:
-        return "⚠️ ميزة توليد الفيديو من جوجل (Veo) تتطلب إعدادات متقدمة أو استخدام مزود OpenRouter حالياً."
+    async def generate_video(self, prompt: str) -> Union[str, bytes]:
+        try:
+            client = genai.Client(api_key=settings.get_ai_api_key())
+            operation = await client.aio.models.generate_videos(
+                model=settings.AI_MODEL_GEMINI_VIDEO,
+                prompt=prompt
+            )
+            # Video generation is an async Long-Running Operation.
+            return f"⏳ تم إرسال طلب الفيديو لجوجل بنجاح (معرف العملية: {operation.name}). تتطلب الفيديوهات وقتاً طويلاً للمعالجة. يرجى مراجعة المنصة."
+        except Exception as exc:
+            logger.error("Gemini Video Gen Error: %s", exc)
+            return f"❌ خطأ في توليد الفيديو أو أن النموذج غير مفعل في باقتك الحالية: {exc}"
 
-    async def generate_music(self, prompt: str) -> str:
+    async def generate_music(self, prompt: str) -> Union[str, bytes]:
         return "⚠️ ميزة توليد الموسيقى من جوجل (Lyria) غير متاحة حالياً عبر هذا الـ API."

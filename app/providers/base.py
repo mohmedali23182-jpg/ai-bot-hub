@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 
 class AIProvider(ABC):
@@ -25,23 +25,23 @@ class AIProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def generate_image(self, prompt: str) -> str:
+    async def generate_image(self, prompt: str) -> Union[str, bytes]:
         """
-        Generates an image from text and returns its URL.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def generate_video(self, prompt: str) -> str:
-        """
-        Generates a video from text and returns its URL.
+        Generates an image from text and returns its URL or raw bytes.
         """
         raise NotImplementedError
 
     @abstractmethod
-    async def generate_music(self, prompt: str) -> str:
+    async def generate_video(self, prompt: str) -> Union[str, bytes]:
         """
-        Generates music from text and returns its URL.
+        Generates a video from text and returns its URL or raw bytes.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def generate_music(self, prompt: str) -> Union[str, bytes]:
+        """
+        Generates music from text and returns its URL or raw bytes.
         """
         raise NotImplementedError
 
