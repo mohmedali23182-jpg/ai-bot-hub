@@ -65,7 +65,7 @@ class GeminiProvider(AIProvider):
     async def generate_multimodal(self, prompt: str, mode: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
         if len(file_bytes) > settings.GEMINI_MAX_INLINE_BYTES:
             raise ValueError(f'الملف كبير جداً ({len(file_bytes) // 1024 // 1024}MB). الحد الأقصى هو {settings.GEMINI_MAX_INLINE_BYTES // 1024 // 1024}MB.')
-
+        
         payload = {
             'system_instruction': {'parts': [{'text': self._system_prompt(mode)}]},
             'contents': [{
@@ -93,12 +93,13 @@ class GeminiProvider(AIProvider):
             resp.raise_for_status()
             return self._extract_text(resp.json())
 
-    # Production specialized methods
-    async def analyze_image(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
-        return await self.generate_multimodal(prompt, "image", file_bytes, mime_type, file_url)
+    async def generate_image(self, prompt: str) -> str:
+        # Note: imagen models usually require vertex ai or different endpoint.
+        # Returning message to user.
+        return "⚠️ ميزة توليد الصور من جوجل (Imagen) تتطلب إعدادات متقدمة أو استخدام مزود OpenRouter حالياً."
 
-    async def analyze_audio(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
-        return await self.generate_multimodal(prompt, "audio", file_bytes, mime_type, file_url)
+    async def generate_video(self, prompt: str) -> str:
+        return "⚠️ ميزة توليد الفيديو من جوجل (Veo) تتطلب إعدادات متقدمة أو استخدام مزود OpenRouter حالياً."
 
-    async def analyze_video(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
-        return await self.generate_multimodal(prompt, "video", file_bytes, mime_type, file_url)
+    async def generate_music(self, prompt: str) -> str:
+        return "⚠️ ميزة توليد الموسيقى من جوجل (Lyria) غير متاحة حالياً عبر هذا الـ API."

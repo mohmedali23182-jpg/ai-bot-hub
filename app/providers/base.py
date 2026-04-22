@@ -24,6 +24,27 @@ class AIProvider(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def generate_image(self, prompt: str) -> str:
+        """
+        Generates an image from text and returns its URL.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def generate_video(self, prompt: str) -> str:
+        """
+        Generates a video from text and returns its URL.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def generate_music(self, prompt: str) -> str:
+        """
+        Generates music from text and returns its URL.
+        """
+        raise NotImplementedError
+
     # Specialized methods for production-ready routing
     async def analyze_image(self, prompt: str, file_bytes: bytes, mime_type: str, file_url: Optional[str] = None) -> str:
         return await self.generate_multimodal(prompt, "image", file_bytes, mime_type, file_url)
@@ -48,6 +69,9 @@ class AIProvider(ABC):
             'audio': settings.AI_MODEL_AUDIO,
             'video': settings.AI_MODEL_VIDEO,
             'code': settings.AI_MODEL_CODE,
+            'gen_image': settings.AI_MODEL_GEN_IMAGE,
+            'gen_video': settings.AI_MODEL_GEN_VIDEO,
+            'gen_music': settings.AI_MODEL_GEN_MUSIC,
         }.get(mode, settings.AI_MODEL_TEXT)
 
     def _system_prompt(self, mode: str) -> str:

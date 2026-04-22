@@ -63,6 +63,7 @@ async def send_message(chat_id: int, text: str, reply_to_message_id: Optional[in
     keyboard = {
         'keyboard': [
             ['/mode_text', '/mode_code'],
+            ['/mode_gen_image', '/mode_gen_video'],
             ['/clear', '/help'],
         ],
         'resize_keyboard': True,
@@ -88,6 +89,36 @@ async def send_message(chat_id: int, text: str, reply_to_message_id: Optional[in
             logger.warning("Markdown parsing failed in chat %d, falling back to plain text", chat_id)
             payload.pop('parse_mode', None)
             await request('sendMessage', payload)
+
+
+async def send_photo(chat_id: int, photo_url: str, caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
+    payload = {
+        'chat_id': chat_id,
+        'photo': photo_url,
+        'caption': caption,
+        'reply_to_message_id': reply_to_message_id
+    }
+    await request('sendPhoto', payload)
+
+
+async def send_video_url(chat_id: int, video_url: str, caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
+    payload = {
+        'chat_id': chat_id,
+        'video': video_url,
+        'caption': caption,
+        'reply_to_message_id': reply_to_message_id
+    }
+    await request('sendVideo', payload)
+
+
+async def send_audio_url(chat_id: int, audio_url: str, caption: Optional[str] = None, reply_to_message_id: Optional[int] = None) -> None:
+    payload = {
+        'chat_id': chat_id,
+        'audio': audio_url,
+        'caption': caption,
+        'reply_to_message_id': reply_to_message_id
+    }
+    await request('sendAudio', payload)
 
 
 async def get_file_url(file_id: str) -> str:

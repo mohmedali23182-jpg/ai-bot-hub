@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     AI_MODEL_AUDIO: str = 'gemini-2.0-flash'
     AI_MODEL_VIDEO: str = 'gemini-2.0-flash'
     AI_MODEL_CODE: str = 'gemini-2.0-flash'
+    
+    # Generation Models
+    AI_MODEL_GEN_IMAGE: str = 'openai/dall-e-3'
+    AI_MODEL_GEN_VIDEO: str = 'luma/dream-machine'
+    AI_MODEL_GEN_MUSIC: str = 'suno/chirp-v3-5'
 
     # Operational Limits
     GEMINI_MAX_INLINE_BYTES: int = 18 * 1024 * 1024

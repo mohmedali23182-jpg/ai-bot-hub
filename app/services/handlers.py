@@ -41,6 +41,9 @@ async def _process_update_safe(update: dict) -> None:
             '/mode_audio': 'audio',
             '/mode_video': 'video',
             '/mode_code': 'code',
+            '/mode_gen_image': 'gen_image',
+            '/mode_gen_video': 'gen_video',
+            '/mode_gen_music': 'gen_music',
         }
         
         if cmd == '/start':
@@ -74,7 +77,12 @@ async def _process_update_safe(update: dict) -> None:
 
     # Typing Indicator
     if settings.ENABLE_TYPING:
-        await telegram.send_chat_action(chat_id)
+        # Choose action based on mode
+        action = 'typing'
+        if mode == 'gen_image': action = 'upload_photo'
+        elif mode == 'gen_video': action = 'upload_video'
+        elif mode == 'gen_music': action = 'upload_voice'
+        await telegram.send_chat_action(chat_id, action)
 
     # Provider Check
     provider = get_provider()
@@ -150,21 +158,49 @@ async def _process_update_safe(update: dict) -> None:
             db.add_message(chat_id, 'user', text or f"[document: {doc.get('file_name', 'file')}]", 'document')
             db.add_message(chat_id, 'model', result, 'document')
 
-        # 5. Text/Code Handling
+        # 5. Text/Code/Generation Handling
         elif text:
             if mode == 'code':
                 db.bump_stat('code_requests')
-                # Route to specialized generate_code
                 result = await provider.generate_code(chat_id, text)
+                await telegram.send_message(chat_id, result, message_id)
+            
+            elif mode == 'gen_image':
+                db.bump_stat('gen_image_requests')
+                result = await provider.generate_image(prompt=text)
+                if result.startswith('http'):
+                    await telegram.send_photo(chat_id, result, caption=f"🎨 تم توليد الصورة لطلبك: {text[:50]}...", reply_to_message_id=message_id)
+                    result = None # Handled
+                else:
+                    await telegram.send_message(chat_id, result, message_id)
+            
+            elif mode == 'gen_video':
+                db.bump_stat('gen_video_requests')
+                result = await provider.generate_video(prompt=text)
+                if result.startswith('http'):
+                    await telegram.send_video_url(chat_id, result, caption=f"🎬 تم توليد الفيديو لطلبك: {text[:50]}...", reply_to_message_id=message_id)
+                    result = None # Handled
+                else:
+                    await telegram.send_message(chat_id, result, message_id)
+
+            elif mode == 'gen_music':
+                db.bump_stat('gen_music_requests')
+                result = await provider.generate_music(prompt=text)
+                if result.startswith('http'):
+                    await telegram.send_audio_url(chat_id, result, caption=f"🎵 تم توليد الموسيقى لطلبك: {text[:50]}...", reply_to_message_id=message_id)
+                    result = None # Handled
+                else:
+                    await telegram.send_message(chat_id, result, message_id)
+
             else:
                 db.bump_stat('text_requests')
                 result = await provider.generate_text(chat_id, text, 'text')
+                await telegram.send_message(chat_id, result, message_id)
             
-            db.add_message(chat_id, 'user', text, mode)
-            db.add_message(chat_id, 'model', result, mode)
+            if result:
+                db.add_message(chat_id, 'user', text, mode)
+                db.add_message(chat_id, 'model', result, mode)
         
-        if result:
-            await telegram.send_message(chat_id, result, message_id)
         elif not media_found and not text:
             await telegram.send_message(chat_id, '❓ عذراً، لم أفهم طلبك. يمكنك إرسال نص أو صورة أو صوت أو فيديو.', message_id)
 

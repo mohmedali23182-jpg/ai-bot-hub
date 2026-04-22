@@ -104,3 +104,70 @@ class OpenAICompatibleProvider(AIProvider):
                 logger.error("OpenAI-Compatible Multimodal Error: %d - %s", resp.status_code, resp.text)
             resp.raise_for_status()
             return self._extract_text(resp.json())
+
+    async def generate_image(self, prompt: str) -> str:
+        payload = {
+            'model': settings.AI_MODEL_GEN_IMAGE,
+            'prompt': prompt,
+            'n': 1,
+            'size': '1024x1024'
+        }
+        
+        # Note: OpenRouter often handles image generation via chat/completions with specific models
+        # or via a standard /images/generations endpoint if supported by the underlying provider.
+        url = f'{self.base_url}/images/generations'
+        
+        try:
+            async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
+                resp = await client.post(url, headers=self._get_headers(), json=payload)
+                if resp.status_code != 200:
+                    # Fallback for OpenRouter chat-based image generation if standard endpoint fails
+                    if self.is_openrouter:
+                        logger.info("Retrying image generation via chat endpoint for OpenRouter")
+                        return await self._generate_media_via_chat(prompt, settings.AI_MODEL_GEN_IMAGE)
+                    
+                    logger.error("Image Gen Error: %d - %s", resp.status_code, resp.text)
+                    resp.raise_for_status()
+                
+                data = resp.json()
+                return data.get('data', [])[0].get('url', '❌ لم يتم العثور على رابط للصورة.')
+        except Exception as exc:
+            logger.error("Error generating image: %s", exc)
+            if self.is_openrouter:
+                return await self._generate_media_via_chat(prompt, settings.AI_MODEL_GEN_IMAGE)
+            return f"❌ حدث خطأ أثناء توليد الصورة: {str(exc)}"
+
+    async def generate_video(self, prompt: str) -> str:
+        # Video generation is highly provider-specific. Using chat fallback for OpenRouter
+        if self.is_openrouter:
+            return await self._generate_media_via_chat(prompt, settings.AI_MODEL_GEN_VIDEO)
+        return "⏳ ميزة توليد الفيديو غير مدعومة مباشرة عبر هذا المزود حالياً."
+
+    async def generate_music(self, prompt: str) -> str:
+        if self.is_openrouter:
+            return await self._generate_media_via_chat(prompt, settings.AI_MODEL_GEN_MUSIC)
+        return "⏳ ميزة توليد الموسيقى غير مدعومة مباشرة عبر هذا المزود حالياً."
+
+    async def _generate_media_via_chat(self, prompt: str, model: str) -> str:
+        """Helper for providers like OpenRouter that return media URLs in chat responses."""
+        payload = {
+            'model': model,
+            'messages': [{'role': 'user', 'content': prompt}],
+        }
+        url = f'{self.base_url}/chat/completions'
+        try:
+            async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
+                resp = await client.post(url, headers=self._get_headers(), json=payload)
+                resp.raise_for_status()
+                result = self._extract_text(resp.json())
+                # Many models return Markdown like ![image](url), we try to extract the URL
+                import re
+                urls = re.findall(r'https?://\S+', result)
+                if urls:
+                    # Clean potential markdown wrapping
+                    clean_url = urls[0].split(')')[0].split('"')[0].split("'")[0]
+                    return clean_url
+                return result
+        except Exception as exc:
+            logger.error("Media chat fallback failed: %s", exc)
+            return f"❌ فشل توليد الوسائط: {str(exc)}"
